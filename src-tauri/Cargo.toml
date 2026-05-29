@@ -1,9 +1,10 @@
 [package]
 name = "git-ssh-manager"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Git SSH 多账号与工作区管理桌面工具"
 authors = ["you"]
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
