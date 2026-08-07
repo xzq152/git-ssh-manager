@@ -1,0 +1,6 @@
+<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization"><String Id="TauriLanguage">1033</String>
+<String Id="TauriCodepage">936</String>
+<String Id="LaunchApp">Launch Git密钥管理器</String>
+<String Id="DowngradeErrorMessage">A newer version of Git密钥管理器 is already installed.</String>
+<String Id="PathEnvVarFeature">Add the install location of the Git密钥管理器 executable to the PATH system environment variable. This allows the Git密钥管理器 executable to be called from any location.</String>
+<String Id="InstallAppFeature">Installs Git密钥管理器.</String></WixLocalization>
