@@ -1,6 +1,6 @@
 [package]
 name = "git-ssh-manager"
-version = "0.1.0"
+version = "0.1.1"
 description = "Git SSH 多账号与工作区管理桌面工具"
 authors = ["you"]
 edition = "2021"

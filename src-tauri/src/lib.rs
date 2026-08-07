@@ -126,6 +126,8 @@ struct CloneRepositoryRequest {
     git_url: String,
     git_user_name: String,
     git_email: String,
+    #[serde(default)]
+    directory_name: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -371,7 +373,19 @@ async fn clone_repository(request: CloneRepositoryRequest) -> Result<String, Str
 
     ensure_host_alias_exists(request.host_alias.trim())?;
     let parsed = parse_repository_url_for_clone(&request.git_url, request.host_alias.trim())?;
-    let target_directory = parent_directory.join(&parsed.repository_dir_name);
+
+    let directory_name = request
+        .directory_name
+        .as_deref()
+        .map(str::trim)
+        .filter(|name| !name.is_empty());
+    let target_directory = match directory_name {
+        Some(name) => {
+            validate_directory_name(name)?;
+            parent_directory.join(name)
+        }
+        None => parent_directory.join(&parsed.repository_dir_name),
+    };
     if target_directory.exists() {
         return Err(format!(
             "目标目录已存在：{}",
@@ -379,12 +393,17 @@ async fn clone_repository(request: CloneRepositoryRequest) -> Result<String, Str
         ));
     }
 
+    let target_dir_name = target_directory
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(&parsed.repository_dir_name);
+
     let output = Command::new("git")
         .current_dir(&parent_directory)
         .args([
             "clone",
             parsed.clone_url.as_str(),
-            parsed.repository_dir_name.as_str(),
+            target_dir_name,
         ])
         .output()
         .await
@@ -419,6 +438,110 @@ async fn clone_repository(request: CloneRepositoryRequest) -> Result<String, Str
 }
 
 #[tauri::command]
+async fn refresh_account_workspaces(host_alias: String) -> Result<String, String> {
+    let host_alias = host_alias.trim().to_string();
+    if host_alias.is_empty() {
+        return Err("Host 别名不能为空。".to_string());
+    }
+
+    let mut state = read_app_state()?;
+
+    let roots: Vec<String> = state
+        .workspace_bindings
+        .iter()
+        .filter(|binding| binding.host_alias == host_alias)
+        .map(|binding| {
+            binding
+                .workspace_root
+                .clone()
+                .unwrap_or_else(|| binding.workspace_path.clone())
+        })
+        .collect();
+
+    if roots.is_empty() {
+        return Err(format!(
+            "账号 {} 尚未绑定工作区，无法刷新。可先在「账号配置」中绑定。",
+            host_alias
+        ));
+    }
+
+    let mut unique_roots = roots.clone();
+    unique_roots.sort();
+    unique_roots.dedup();
+
+    let bound_by_others: HashSet<String> = state
+        .workspace_bindings
+        .iter()
+        .filter(|binding| binding.host_alias != host_alias)
+        .map(|binding| binding.workspace_path.clone())
+        .collect();
+
+    let mut messages = Vec::new();
+    let mut applied_any = false;
+
+    for root in unique_roots {
+        let workspace_root = PathBuf::from(&root);
+        if !workspace_root.exists() || !workspace_root.is_dir() {
+            messages.push(format!("工作区不存在，已跳过：{}", root));
+            continue;
+        }
+
+        let repositories = collect_git_repositories(&workspace_root)?;
+        if repositories.is_empty() {
+            messages.push(format!("工作区下未发现 Git 仓库：{}", root));
+            continue;
+        }
+
+        let repository_paths: Vec<String> = repositories
+            .iter()
+            .map(|path| normalize_path(path))
+            .filter(|path| !bound_by_others.contains(path))
+            .collect();
+
+        if repository_paths.is_empty() {
+            messages.push(format!("工作区 {} 下没有需要刷新的仓库（其余仓库已绑定其他账号）。", root));
+            continue;
+        }
+
+        let existing = state.workspace_bindings.iter().find(|binding| {
+            binding.host_alias == host_alias
+                && binding
+                    .workspace_root
+                    .as_deref()
+                    .map(|value| value == root)
+                    .unwrap_or(false)
+        });
+        let git_user_name = existing
+            .map(|binding| binding.git_user_name.clone())
+            .unwrap_or_else(|| "Git SSH Manager".to_string());
+        let git_email = existing
+            .map(|binding| binding.git_email.clone())
+            .unwrap_or_default();
+
+        let request = WorkspaceApplyRequest {
+            host_alias: host_alias.clone(),
+            workspace_root: root.clone(),
+            git_user_name,
+            git_email,
+            repository_paths,
+        };
+
+        let message = apply_workspace_binding_internal(&mut state, &request).await?;
+        messages.push(format!("{}：{}", root, message));
+        applied_any = true;
+    }
+
+    write_app_state(&state)?;
+
+    if !applied_any {
+        messages.push(format!("账号 {} 没有可刷新的工作区。", host_alias));
+    }
+    messages.push(format!("账号 {} 工作区刷新完成。", host_alias));
+
+    Ok(messages.join("\n"))
+}
+
+#[tauri::command]
 async fn delete_account(host_alias: String, delete_key_files: bool) -> Result<String, String> {
     let state = read_app_state()?;
     let account = state
@@ -450,6 +573,93 @@ async fn delete_account(host_alias: String, delete_key_files: bool) -> Result<St
     }
 
     Ok(messages.join("\n"))
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EnvironmentStatus {
+    git_available: bool,
+    git_version: Option<String>,
+    has_ssh_keys: bool,
+    ssh_dir: String,
+}
+
+#[tauri::command]
+async fn check_environment() -> Result<EnvironmentStatus, String> {
+    let git_output = Command::new("git").arg("--version").output().await.ok();
+    let git_available = git_output
+        .as_ref()
+        .is_some_and(|output| output.status.success());
+    let git_version = git_output
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_string())
+        .filter(|text| !text.is_empty());
+
+    let home_dir = dirs::home_dir().ok_or("无法获取用户主目录。")?;
+    let ssh_dir = home_dir.join(".ssh");
+    let has_ssh_keys = if ssh_dir.is_dir() {
+        !scan_existing_keys(&ssh_dir).unwrap_or_default().is_empty()
+    } else {
+        false
+    };
+
+    Ok(EnvironmentStatus {
+        git_available,
+        git_version,
+        has_ssh_keys,
+        ssh_dir: normalize_path(&ssh_dir),
+    })
+}
+
+#[tauri::command]
+async fn read_public_key(key_name: String) -> Result<String, String> {
+    let ssh_dir = ensure_ssh_dir()?;
+    let public_key_path = ssh_dir.join(format!("{}.pub", key_name));
+    if !public_key_path.exists() {
+        return Err(format!(
+            "未找到公钥文件：{}",
+            normalize_path(&public_key_path)
+        ));
+    }
+
+    fs::read_to_string(&public_key_path)
+        .map(|content| content.trim().to_string())
+        .map_err(|e| format!("读取公钥失败: {}", e))
+}
+
+#[tauri::command]
+async fn create_key(key_name: String, email: Option<String>) -> Result<String, String> {
+    let key_name = key_name.trim().to_string();
+    if key_name.is_empty() {
+        return Err("密钥文件名不能为空。".to_string());
+    }
+    if key_name.ends_with(".pub") {
+        return Err("密钥文件名不能以 .pub 结尾。".to_string());
+    }
+    if key_name
+        .chars()
+        .any(|ch| matches!(ch, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|' | ' '))
+    {
+        return Err("密钥文件名包含非法字符，请使用字母、数字、下划线或连字符。".to_string());
+    }
+
+    let ssh_dir = ensure_ssh_dir()?;
+    let key_path = ssh_dir.join(&key_name);
+    let public_key_path = ssh_dir.join(format!("{}.pub", key_name));
+    if key_path.exists() || public_key_path.exists() {
+        return Err(format!("密钥 {} 已存在。", key_name));
+    }
+
+    let email = email
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    generate_key_pair(&key_path, email.as_deref().unwrap_or("git-ssh-manager")).await?;
+
+    Ok(format!(
+        "已创建密钥对：{}\n公钥：{}",
+        normalize_path(&key_path),
+        normalize_path(&public_key_path)
+    ))
 }
 
 #[tauri::command]
@@ -989,6 +1199,23 @@ fn build_clone_target(user: &str, path: &str, host_alias: &str) -> Result<Parsed
     })
 }
 
+fn validate_directory_name(name: &str) -> Result<(), String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("文件夹名称不能为空。".to_string());
+    }
+    if name == "." || name == ".." {
+        return Err("文件夹名称不合法。".to_string());
+    }
+    if name
+        .chars()
+        .any(|ch| matches!(ch, '\\' | '/' | ':' | '*' | '?' | '"' | '<' | '>' | '|'))
+    {
+        return Err("文件夹名称包含非法字符（\\ / : * ? \" < > |）。".to_string());
+    }
+    Ok(())
+}
+
 async fn run_git_command(workspace_path: &Path, args: &[&str]) -> Result<String, String> {
     let output = Command::new("git")
         .arg("-C")
@@ -1368,7 +1595,11 @@ pub fn run() {
             apply_workspace_binding,
             clone_repository,
             delete_account,
-            delete_key
+            delete_key,
+            create_key,
+            read_public_key,
+            refresh_account_workspaces,
+            check_environment
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
