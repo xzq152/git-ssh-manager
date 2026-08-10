@@ -7,6 +7,17 @@ use tokio::process::Command;
 
 const MANAGED_MARKER: &str = "# Managed by Rust Git SSH Manager";
 const APP_DIR_NAME: &str = "git-ssh-manager";
+
+/// CREATE_NO_WINDOW：禁止子进程创建新的控制台窗口，避免执行 git/ssh 时屏幕闪出 cmd 窗口。
+#[cfg(windows)]
+const CREATE_NO_WINDOW_FLAG: u32 = 0x0800_0000;
+
+fn build_command(program: &str) -> Command {
+    let mut command = Command::new(program);
+    #[cfg(windows)]
+    command.creation_flags(CREATE_NO_WINDOW_FLAG);
+    command
+}
 const APP_STATE_FILE: &str = "state.json";
 const PLATFORM_CODEUP: &str = "codeup";
 const PLATFORM_GITHUB: &str = "github";
@@ -128,6 +139,8 @@ struct CloneRepositoryRequest {
     git_email: String,
     #[serde(default)]
     directory_name: Option<String>,
+    #[serde(default)]
+    branch: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -255,7 +268,7 @@ async fn test_ssh_connection(config: AccountConfig) -> Result<SshTestResult, Str
     }
 
     let target = format!("{}@{}", config.user.trim(), config.host_name.trim());
-    let output = Command::new("ssh")
+    let output = build_command("ssh")
         .args([
             "-T",
             "-o",
@@ -398,13 +411,23 @@ async fn clone_repository(request: CloneRepositoryRequest) -> Result<String, Str
         .and_then(|name| name.to_str())
         .unwrap_or(&parsed.repository_dir_name);
 
-    let output = Command::new("git")
+    let mut clone_args: Vec<&str> = vec!["clone"];
+    if let Some(branch) = request
+        .branch
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        clone_args.push("-b");
+        clone_args.push(branch);
+        clone_args.push("--single-branch");
+    }
+    clone_args.push(parsed.clone_url.as_str());
+    clone_args.push(target_dir_name);
+
+    let output = build_command("git")
         .current_dir(&parent_directory)
-        .args([
-            "clone",
-            parsed.clone_url.as_str(),
-            target_dir_name,
-        ])
+        .args(clone_args)
         .output()
         .await
         .map_err(|e| format!("执行 git clone 失败: {}", e))?;
@@ -435,6 +458,37 @@ async fn clone_repository(request: CloneRepositoryRequest) -> Result<String, Str
         combined_output(&output.stdout, &output.stderr),
         apply_message
     ))
+}
+
+#[tauri::command]
+async fn verify_remote_branch(git_url: String, branch: String) -> Result<(), String> {
+    let git_url = git_url.trim().to_string();
+    let branch = branch.trim().to_string();
+    if git_url.is_empty() {
+        return Err("Git 地址不能为空。".to_string());
+    }
+    if branch.is_empty() {
+        return Err("分支名不能为空。".to_string());
+    }
+
+    let output = build_command("git")
+        .args(["ls-remote", "--heads", git_url.as_str(), branch.as_str()])
+        .output()
+        .await
+        .map_err(|e| format!("执行 git ls-remote 失败: {}", e))?;
+
+    if !output.status.success() {
+        return Err(format!(
+            "无法访问远程仓库：{}",
+            combined_output(&output.stdout, &output.stderr)
+        ));
+    }
+
+    if String::from_utf8_lossy(&output.stdout).trim().is_empty() {
+        return Err(format!("远程仓库中不存在分支：{}", branch));
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -586,7 +640,7 @@ struct EnvironmentStatus {
 
 #[tauri::command]
 async fn check_environment() -> Result<EnvironmentStatus, String> {
-    let git_output = Command::new("git").arg("--version").output().await.ok();
+    let git_output = build_command("git").arg("--version").output().await.ok();
     let git_available = git_output
         .as_ref()
         .is_some_and(|output| output.status.success());
@@ -885,7 +939,7 @@ fn validate_test_config(config: &AccountConfig) -> Result<(), String> {
 }
 
 async fn generate_key_pair(key_path: &Path, email: &str) -> Result<(), String> {
-    let output = Command::new("ssh-keygen")
+    let output = build_command("ssh-keygen")
         .args([
             "-t",
             "ed25519",
@@ -1217,7 +1271,7 @@ fn validate_directory_name(name: &str) -> Result<(), String> {
 }
 
 async fn run_git_command(workspace_path: &Path, args: &[&str]) -> Result<String, String> {
-    let output = Command::new("git")
+    let output = build_command("git")
         .arg("-C")
         .arg(workspace_path)
         .args(args)
@@ -1594,6 +1648,7 @@ pub fn run() {
             scan_workspace_repositories,
             apply_workspace_binding,
             clone_repository,
+            verify_remote_branch,
             delete_account,
             delete_key,
             create_key,

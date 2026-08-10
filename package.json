@@ -1,7 +1,7 @@
 {
   "name": "git-ssh-manager",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Git SSH 多账号与工作区管理桌面工具",
   "license": "MIT",
   "type": "module",

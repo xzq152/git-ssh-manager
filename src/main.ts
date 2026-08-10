@@ -4,10 +4,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-type TabKey = "home" | "config" | "accounts" | "keys" | "import";
+type TabKey = "home" | "import" | "accounts";
 type Platform = "codeup" | "github" | "gitlab" | "custom";
 type StatusType = "info" | "success" | "error";
-type WorkspaceMode = "existing" | "new";
 
 interface WorkspaceBinding {
   hostAlias: string;
@@ -33,6 +32,7 @@ interface ExistingKey {
   keyPath: string;
   publicKeyPath: string;
   managedHosts: string[];
+  workspacePaths: string[];
 }
 
 interface DashboardData {
@@ -137,29 +137,6 @@ app.innerHTML = `
           </svg>
           <span>使用说明</span>
         </button>
-        <button class="sidebar-item" data-tab="config" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-            <path d="M7 8.5h10M7 12.5h10M7 16.5h6"></path>
-          </svg>
-          <span>账号配置</span>
-        </button>
-        <button class="sidebar-item" data-tab="accounts" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="7.5" r="4"></circle>
-            <path d="M4.5 20.5c0-4.2 3.4-6.5 7.5-6.5s7.5 2.3 7.5 6.5"></path>
-          </svg>
-          <span>已管理账号</span>
-        </button>
-        <button class="sidebar-item" data-tab="keys" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="8" cy="15" r="4"></circle>
-            <path d="M10.85 12.15 19 4"></path>
-            <path d="M18 5l2 2"></path>
-            <path d="M15 8l2 2"></path>
-          </svg>
-          <span>已有密钥</span>
-        </button>
         <button class="sidebar-item" data-tab="import" type="button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 3v12"></path>
@@ -167,6 +144,13 @@ app.innerHTML = `
             <path d="M4 21h16"></path>
           </svg>
           <span>快速导入</span>
+        </button>
+        <button class="sidebar-item" data-tab="accounts" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="7.5" r="4"></circle>
+            <path d="M4.5 20.5c0-4.2 3.4-6.5 7.5-6.5s7.5 2.3 7.5 6.5"></path>
+          </svg>
+          <span>账号与密钥</span>
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -188,11 +172,11 @@ app.innerHTML = `
           <div class="helper-grid">
             <article class="helper-card">
               <strong>① 准备密钥</strong>
-              <p>在「已有密钥」页创建新密钥，或复用 ~/.ssh 下已有的密钥；把公钥复制到 GitHub、云效、GitLab 等平台。</p>
+              <p>在「账号与密钥」页创建新密钥，或复用 ~/.ssh 下已有的密钥；把公钥复制到 GitHub、云效、GitLab 等平台。</p>
             </article>
             <article class="helper-card">
-              <strong>② 配置账号</strong>
-              <p>在「账号配置」页选择平台、填写唯一 Host 别名、密钥文件名与邮箱，保存后自动写入 SSH config。</p>
+              <strong>② 新建账号</strong>
+              <p>在「账号与密钥」页新建账号：选择平台、填写唯一 Host 别名、密钥文件名与邮箱，保存后自动写入 SSH config。</p>
             </article>
             <article class="helper-card">
               <strong>③ 绑定仓库</strong>
@@ -216,177 +200,49 @@ app.innerHTML = `
         </div>
       </section>
 
-      <section class="tab-panel" data-panel="config">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>账号配置</h2>
-              <p>先选平台，再填写 Host 别名。对于云效多账号，真实域名相同，但 Host 别名必须不同。</p>
-            </div>
-          </div>
-
-          <div class="helper-grid">
-            <article class="helper-card">
-              <strong>多账号规则</strong>
-              <p>同一平台可配置多个账号，但每个账号都要有唯一的 Host 别名，例如 work-account、test-account。</p>
-            </article>
-            <article class="helper-card">
-              <strong>Remote 规则</strong>
-              <p>仓库地址要写成 git@别名:命名空间/仓库.git，不要继续直接使用真实域名。</p>
-            </article>
-          </div>
-
-          <div class="git-url-card">
-            <div class="panel-header compact-header">
-              <div>
-                <h3>Git 地址识别</h3>
-                <p>直接粘贴 SSH 或 HTTPS 仓库地址，自动识别平台、域名、命名空间和仓库名。</p>
-              </div>
-            </div>
-            <div class="git-url-row">
-              <label class="field git-url-field">
-                <span>Git 地址</span>
-                <input id="gitUrlInput" type="text" placeholder="例如：git@your-host:group/project.git" />
-              </label>
-              <button class="secondary-button" id="parseGitUrlBtn" type="button">解析地址</button>
-              <button class="ghost-button" id="clearGitUrlBtn" type="button">清空地址</button>
-            </div>
-            <div class="git-url-result" id="gitUrlResult">粘贴地址后可自动识别命名空间与仓库名。</div>
-          </div>
-
-          <div class="grid">
-            <label class="field">
-              <span>平台类型</span>
-              <select id="platformSelect">
-                <option value="codeup">云效 Codeup</option>
-                <option value="github">GitHub</option>
-                <option value="gitlab">GitLab</option>
-                <option value="custom">自定义</option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span>Host 别名</span>
-              <input id="hostAlias" type="text" placeholder="例如：work-account" />
-            </label>
-
-            <label class="field">
-              <span>真实域名</span>
-              <input id="hostName" type="text" placeholder="例如：codeup.aliyun.com" />
-            </label>
-
-            <label class="field">
-              <span>SSH 用户</span>
-              <input id="sshUser" type="text" value="git" placeholder="例如：git" />
-            </label>
-
-            <label class="field">
-              <span>密钥文件名</span>
-              <input id="keyName" type="text" placeholder="例如：id_work_account" />
-            </label>
-
-            <label class="field">
-              <span>邮箱</span>
-              <input id="email" type="email" placeholder="例如：work@example.com" />
-            </label>
-
-            <label class="field">
-              <span>Git 用户名</span>
-              <input id="gitUserName" type="text" placeholder="例如：张三 / your-name" />
-            </label>
-
-            <label class="field">
-              <span>平台提示</span>
-              <input id="platformHint" type="text" readonly />
-            </label>
-
-            <label class="field">
-              <span>命名空间</span>
-              <input id="namespaceInput" type="text" placeholder="例如：group/subgroup" />
-            </label>
-
-            <label class="field">
-              <span>仓库名</span>
-              <input id="repoNameInput" type="text" placeholder="例如：project.git" />
-            </label>
-          </div>
-
-          <div class="workspace-row">
-            <label class="field workspace-field">
-              <span id="workspacePathLabel">工作区文件夹</span>
-              <input id="workspacePath" type="text" placeholder="选择父目录也可以，工具会自动扫描其中带 .git 的子项目" readonly />
-            </label>
-            <button class="secondary-button" id="pickFolderBtn" type="button">选择文件夹</button>
-            <button class="ghost-button" id="clearFolderBtn" type="button">清空</button>
-          </div>
-
-          <div class="mode-card">
-            <div class="panel-header compact-header">
-              <div>
-                <h3>工作区模式</h3>
-                <p>已有仓库模式用于扫描并勾选子仓库；新仓库模式用于选择父目录后直接 clone。</p>
-              </div>
-            </div>
-            <div class="mode-switch" role="tablist" aria-label="工作区模式">
-              <button class="mode-button active" id="existingModeBtn" data-mode="existing" type="button">已有仓库</button>
-              <button class="mode-button" id="newModeBtn" data-mode="new" type="button">新仓库</button>
-            </div>
-          </div>
-
-          <div class="repo-scan-card" id="existingRepoSection">
-            <div class="panel-header compact-header">
-              <div>
-                <h3>子仓库扫描</h3>
-                <p>先扫描当前工作区下所有带 .git 的子目录，再勾选需要绑定的仓库。</p>
-              </div>
-            </div>
-            <div class="repo-toolbar">
-              <button class="secondary-button" id="scanReposBtn" type="button">扫描子仓库</button>
-              <button class="ghost-button" id="selectAllReposBtn" type="button">全选</button>
-              <button class="ghost-button" id="clearSelectedReposBtn" type="button">清空勾选</button>
-            </div>
-            <div class="repo-scan-summary" id="repoScanSummary">尚未扫描工作区。</div>
-            <div class="repo-list" id="scannedRepos"></div>
-          </div>
-
-          <div class="repo-scan-card hidden-section" id="newRepoSection">
-            <div class="panel-header compact-header">
-              <div>
-                <h3>新仓库克隆</h3>
-                <p>选择父目录并填写 Git 地址，保存账号后会直接 clone 并自动绑定到新仓库。</p>
-              </div>
-            </div>
-            <div class="repo-scan-summary" id="cloneSummary" data-type="info">将使用上方 Git 地址和当前 Host 别名生成克隆地址。</div>
-          </div>
-
-          <label class="checkbox-row">
-            <input id="reuseExistingKey" type="checkbox" />
-            <span>复用已有密钥，不重新生成</span>
-          </label>
-
-          <div class="preview-card">
-            <div class="preview-title">Remote 预览</div>
-            <code id="remotePreview">git@your-alias:命名空间/仓库.git</code>
-          </div>
-
-          <div class="action-row">
-            <button class="primary-button" id="saveBtn" type="button">保存账号并绑定工作区</button>
-            <button class="secondary-button" id="testBtn" type="button">测试 SSH</button>
-            <button class="ghost-button" id="resetBtn" type="button">重置表单</button>
-          </div>
-
-          <div class="status-box" id="statusBox" data-type="info">准备就绪</div>
-        </div>
-      </section>
-
       <section class="tab-panel" data-panel="accounts">
         <div class="panel">
           <div class="panel-header">
             <div>
-              <h2>已管理账号</h2>
-              <p>这里展示已经写入 SSH config 的账号，点击「详情」可展开查看完整信息。</p>
+              <h2>账号与密钥</h2>
+              <p>先检查 ~/.ssh 下已有的密钥，再管理账号与工作区绑定。</p>
             </div>
           </div>
+
+          <div class="merged-section-header">
+            <div>
+              <h3>已有密钥</h3>
+              <p>扫描 .ssh 下的私钥文件，可查看、复制公钥并执行删除。</p>
+            </div>
+            <button class="primary-button" id="createKeyOpenBtn" type="button">创建新密钥</button>
+          </div>
+
+          <div class="status-box" id="keysStatusBox" data-type="info">准备就绪</div>
+
+          <div class="table-wrap">
+            <table class="keys-table">
+              <thead>
+                <tr>
+                  <th>密钥名</th>
+                  <th>私钥路径</th>
+                  <th>公钥路径</th>
+                  <th>关联账号</th>
+                  <th>绑定仓库</th>
+                  <th class="col-actions">操作</th>
+                </tr>
+              </thead>
+              <tbody id="existingKeys"></tbody>
+            </table>
+          </div>
+
+          <div class="merged-section-header">
+            <div>
+              <h3>已管理账号</h3>
+              <p>展示已写入 SSH config 的账号，点击「详情」可展开查看完整信息。</p>
+            </div>
+            <button class="primary-button" id="newAccountBtn" type="button">新建账号</button>
+          </div>
+
           <div id="accountSummary"></div>
           <div class="status-box dismissible hidden-section" id="accountsStatusBox" data-type="info">
             <span class="status-message" id="accountsStatusMessage"></span>
@@ -406,35 +262,6 @@ app.innerHTML = `
                 </tr>
               </thead>
               <tbody id="managedAccounts"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      <section class="tab-panel" data-panel="keys">
-        <div class="panel">
-          <div class="panel-header">
-            <div>
-              <h2>已有密钥</h2>
-              <p>扫描 .ssh 下的私钥文件，可查看、复制公钥并执行删除。</p>
-            </div>
-            <button class="primary-button" id="createKeyOpenBtn" type="button">创建新密钥</button>
-          </div>
-
-          <div class="status-box" id="keysStatusBox" data-type="info">准备就绪</div>
-
-          <div class="table-wrap">
-            <table class="keys-table">
-              <thead>
-                <tr>
-                  <th>密钥名</th>
-                  <th>私钥路径</th>
-                  <th>公钥路径</th>
-                  <th>关联账号</th>
-                  <th class="col-actions">操作</th>
-                </tr>
-              </thead>
-              <tbody id="existingKeys"></tbody>
             </table>
           </div>
         </div>
@@ -474,6 +301,10 @@ app.innerHTML = `
             <label class="field">
               <span>文件夹名称</span>
               <input id="importDirName" type="text" placeholder="留空则使用仓库名" />
+            </label>
+            <label class="field">
+              <span>分支（可选）</span>
+              <input id="importBranch" type="text" placeholder="留空则克隆仓库默认分支" />
             </label>
           </div>
 
@@ -551,32 +382,125 @@ app.innerHTML = `
       </div>
     </div>
   </div>
+
+  <div class="drawer-overlay hidden-section" id="accountDrawer">
+    <div class="drawer" role="dialog" aria-modal="true" aria-label="账号表单">
+      <div class="drawer-header">
+        <h3 id="accountFormTitle">新建账号</h3>
+        <button class="modal-close-btn" id="drawerCloseBtn" type="button" aria-label="关闭">✕</button>
+      </div>
+      <div class="drawer-body">
+        <p class="drawer-desc">先选平台，再填写 Host 别名。对于云效多账号，真实域名相同，但 Host 别名必须不同。</p>
+
+        <div class="grid">
+          <label class="field">
+            <span>平台类型</span>
+            <select id="platformSelect">
+              <option value="codeup">云效 Codeup</option>
+              <option value="github">GitHub</option>
+              <option value="gitlab">GitLab</option>
+              <option value="custom">自定义</option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Host 别名</span>
+            <input id="hostAlias" type="text" placeholder="例如：work-account" />
+          </label>
+
+          <label class="field">
+            <span>真实域名</span>
+            <input id="hostName" type="text" placeholder="例如：codeup.aliyun.com" />
+          </label>
+
+          <label class="field">
+            <span>SSH 用户</span>
+            <input id="sshUser" type="text" value="git" placeholder="例如：git" />
+          </label>
+
+          <label class="field">
+            <span>使用密钥</span>
+            <div class="key-select-row">
+              <select id="keySelect"></select>
+              <button class="secondary-button" id="formCreateKeyBtn" type="button">新建密钥</button>
+            </div>
+          </label>
+
+          <label class="field">
+            <span>邮箱</span>
+            <input id="email" type="email" placeholder="例如：work@example.com" />
+          </label>
+
+          <label class="field">
+            <span>Git 用户名</span>
+            <input id="gitUserName" type="text" placeholder="例如：张三 / your-name" />
+          </label>
+        </div>
+
+        <p class="field-hint" id="platformHint"></p>
+
+        <div class="workspace-row">
+          <label class="field workspace-field">
+            <span>工作区文件夹</span>
+            <input id="workspacePath" type="text" placeholder="选择父目录也可以，工具会自动扫描其中带 .git 的子项目" readonly />
+          </label>
+          <button class="secondary-button" id="pickFolderBtn" type="button">选择文件夹</button>
+          <button class="ghost-button" id="clearFolderBtn" type="button">清空</button>
+        </div>
+
+        <div class="repo-scan-card" id="existingRepoSection">
+          <div class="panel-header compact-header">
+            <div>
+              <h3>子仓库扫描</h3>
+              <p>先扫描当前工作区下所有带 .git 的子目录，再勾选需要绑定的仓库。</p>
+            </div>
+          </div>
+          <div class="repo-toolbar">
+            <button class="secondary-button" id="scanReposBtn" type="button">扫描子仓库</button>
+            <button class="ghost-button" id="selectAllReposBtn" type="button">全选</button>
+            <button class="ghost-button" id="clearSelectedReposBtn" type="button">清空勾选</button>
+          </div>
+          <div class="repo-scan-summary" id="repoScanSummary">尚未扫描工作区。</div>
+          <div class="repo-list" id="scannedRepos"></div>
+        </div>
+
+        <div class="preview-card">
+          <div class="preview-title">Remote 预览</div>
+          <code id="remotePreview">git@your-alias:命名空间/仓库.git</code>
+        </div>
+
+        <div class="status-box" id="statusBox" data-type="info">准备就绪</div>
+      </div>
+      <div class="drawer-footer">
+        <button class="ghost-button" id="cancelAccountFormBtn" type="button">取消</button>
+        <button class="secondary-button" id="testBtn" type="button">测试 SSH</button>
+        <button class="primary-button" id="saveBtn" type="button">保存账号并绑定工作区</button>
+      </div>
+    </div>
+  </div>
 `;
 
 const tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>(".sidebar-item"));
 const tabPanels = Array.from(document.querySelectorAll<HTMLElement>(".tab-panel"));
 const platformSelect = document.getElementById("platformSelect") as HTMLSelectElement;
-const gitUrlInput = document.getElementById("gitUrlInput") as HTMLInputElement;
-const namespaceInput = document.getElementById("namespaceInput") as HTMLInputElement;
-const repoNameInput = document.getElementById("repoNameInput") as HTMLInputElement;
 const hostAliasInput = document.getElementById("hostAlias") as HTMLInputElement;
 const hostNameInput = document.getElementById("hostName") as HTMLInputElement;
 const sshUserInput = document.getElementById("sshUser") as HTMLInputElement;
-const keyNameInput = document.getElementById("keyName") as HTMLInputElement;
+const keySelect = document.getElementById("keySelect") as HTMLSelectElement;
 const gitUserNameInput = document.getElementById("gitUserName") as HTMLInputElement;
 const emailInput = document.getElementById("email") as HTMLInputElement;
-const platformHintInput = document.getElementById("platformHint") as HTMLInputElement;
-const workspacePathLabel = document.getElementById("workspacePathLabel") as HTMLSpanElement;
+const platformHintInput = document.getElementById("platformHint") as HTMLElement;
 const workspacePathInput = document.getElementById("workspacePath") as HTMLInputElement;
-const reuseExistingKeyInput = document.getElementById("reuseExistingKey") as HTMLInputElement;
 const remotePreview = document.getElementById("remotePreview") as HTMLElement;
 const statusBox = document.getElementById("statusBox") as HTMLDivElement;
 const managedAccountsContainer = document.getElementById("managedAccounts") as HTMLTableSectionElement;
 const existingKeysContainer = document.getElementById("existingKeys") as HTMLTableSectionElement;
 const accountSummary = document.getElementById("accountSummary") as HTMLDivElement;
-const gitUrlResult = document.getElementById("gitUrlResult") as HTMLDivElement;
-const parseGitUrlBtn = document.getElementById("parseGitUrlBtn") as HTMLButtonElement;
-const clearGitUrlBtn = document.getElementById("clearGitUrlBtn") as HTMLButtonElement;
+const newAccountBtn = document.getElementById("newAccountBtn") as HTMLButtonElement;
+const accountDrawer = document.getElementById("accountDrawer") as HTMLDivElement;
+const accountFormTitle = document.getElementById("accountFormTitle") as HTMLHeadingElement;
+const drawerCloseBtn = document.getElementById("drawerCloseBtn") as HTMLButtonElement;
+const cancelAccountFormBtn = document.getElementById("cancelAccountFormBtn") as HTMLButtonElement;
 const pickFolderBtn = document.getElementById("pickFolderBtn") as HTMLButtonElement;
 const clearFolderBtn = document.getElementById("clearFolderBtn") as HTMLButtonElement;
 const scanReposBtn = document.getElementById("scanReposBtn") as HTMLButtonElement;
@@ -584,14 +508,8 @@ const selectAllReposBtn = document.getElementById("selectAllReposBtn") as HTMLBu
 const clearSelectedReposBtn = document.getElementById("clearSelectedReposBtn") as HTMLButtonElement;
 const repoScanSummary = document.getElementById("repoScanSummary") as HTMLDivElement;
 const scannedReposContainer = document.getElementById("scannedRepos") as HTMLDivElement;
-const existingModeBtn = document.getElementById("existingModeBtn") as HTMLButtonElement;
-const newModeBtn = document.getElementById("newModeBtn") as HTMLButtonElement;
-const existingRepoSection = document.getElementById("existingRepoSection") as HTMLDivElement;
-const newRepoSection = document.getElementById("newRepoSection") as HTMLDivElement;
-const cloneSummary = document.getElementById("cloneSummary") as HTMLDivElement;
 const saveBtn = document.getElementById("saveBtn") as HTMLButtonElement;
 const testBtn = document.getElementById("testBtn") as HTMLButtonElement;
-const resetBtn = document.getElementById("resetBtn") as HTMLButtonElement;
 const refreshBtn = document.getElementById("refreshBtn") as HTMLButtonElement;
 const windowMinBtn = document.getElementById("windowMinBtn") as HTMLButtonElement;
 const windowMaxBtn = document.getElementById("windowMaxBtn") as HTMLButtonElement;
@@ -602,6 +520,7 @@ const importGitUrlInput = document.getElementById("importGitUrl") as HTMLInputEl
 const importAccountSelect = document.getElementById("importAccountSelect") as HTMLSelectElement;
 const importParentDirInput = document.getElementById("importParentDir") as HTMLInputElement;
 const importDirNameInput = document.getElementById("importDirName") as HTMLInputElement;
+const importBranchInput = document.getElementById("importBranch") as HTMLInputElement;
 const importPickDirBtn = document.getElementById("importPickDirBtn") as HTMLButtonElement;
 const importRemotePreview = document.getElementById("importRemotePreview") as HTMLElement;
 const importCloneBtn = document.getElementById("importCloneBtn") as HTMLButtonElement;
@@ -612,6 +531,7 @@ const createKeyEmailInput = document.getElementById("createKeyEmail") as HTMLInp
 const createKeyBtn = document.getElementById("createKeyBtn") as HTMLButtonElement;
 const keysStatusBox = document.getElementById("keysStatusBox") as HTMLDivElement;
 const createKeyOpenBtn = document.getElementById("createKeyOpenBtn") as HTMLButtonElement;
+const formCreateKeyBtn = document.getElementById("formCreateKeyBtn") as HTMLButtonElement;
 const createKeyModal = document.getElementById("createKeyModal") as HTMLDivElement;
 const createKeyModalClose = document.getElementById("createKeyModalClose") as HTMLButtonElement;
 const createKeyModalCancel = document.getElementById("createKeyModalCancel") as HTMLButtonElement;
@@ -639,7 +559,6 @@ let dashboardData: DashboardData = {
 };
 let scannedRepositories: ScannedRepository[] = [];
 let selectedRepositoryPaths = new Set<string>();
-let workspaceMode: WorkspaceMode = "existing";
 let expandedAccountAliases = new Set<string>();
 
 function escapeHtml(value: string) {
@@ -695,14 +614,6 @@ function detectPlatformByHost(host: string): Platform {
   return "custom";
 }
 
-function normalizeRepoName(repoName: string) {
-  const trimmed = repoName.trim();
-  if (!trimmed) {
-    return "";
-  }
-  return trimmed.endsWith(".git") ? trimmed : `${trimmed}.git`;
-}
-
 function parseGitUrl(rawValue: string): ParsedGitUrl | null {
   const value = rawValue.trim();
   if (!value) {
@@ -753,38 +664,6 @@ function parseGitUrl(rawValue: string): ParsedGitUrl | null {
   return null;
 }
 
-function renderGitUrlResult(parsed: ParsedGitUrl | null, rawValue = "") {
-  if (!rawValue.trim()) {
-    gitUrlResult.textContent = "粘贴地址后可自动识别命名空间与仓库名。";
-    gitUrlResult.dataset.type = "info";
-    return;
-  }
-
-  if (!parsed) {
-    gitUrlResult.textContent = "无法识别当前 Git 地址，请使用完整的 SSH 或 HTTPS 仓库地址。";
-    gitUrlResult.dataset.type = "error";
-    return;
-  }
-
-  gitUrlResult.textContent = `已识别：${platformLabel(parsed.detectedPlatform)} / ${parsed.host} / ${parsed.namespacePath} / ${parsed.repoName}`;
-  gitUrlResult.dataset.type = "success";
-}
-
-function applyParsedGitUrl(parsed: ParsedGitUrl) {
-  platformSelect.value = parsed.detectedPlatform;
-  updatePlatformPreset();
-  if (parsed.detectedPlatform === "custom") {
-    hostNameInput.value = parsed.host;
-  }
-  namespaceInput.value = parsed.namespacePath;
-  repoNameInput.value = parsed.repoName;
-  if (parsed.protocol === "ssh" && parsed.sshUser) {
-    sshUserInput.value = parsed.sshUser;
-  }
-  renderGitUrlResult(parsed, gitUrlInput.value);
-  updateRemotePreview();
-}
-
 function updatePlatformPreset() {
   const platform = getSelectedPlatform();
   const defaultHost = PLATFORM_HOST_MAP[platform];
@@ -796,76 +675,16 @@ function updatePlatformPreset() {
   } else if (!hostNameInput.value.trim()) {
     hostNameInput.value = "";
   }
-  platformHintInput.value = getPlatformHint(platform);
+  platformHintInput.textContent = getPlatformHint(platform);
   updateRemotePreview();
 }
 
 function updateRemotePreview() {
   const alias = hostAliasInput.value.trim() || "your-alias";
-  const namespacePath = namespaceInput.value.trim() || "命名空间";
-  const repoName = normalizeRepoName(repoNameInput.value) || "仓库.git";
-  remotePreview.textContent = `git@${alias}:${namespacePath}/${repoName}`;
-  updateCloneSummary();
-}
-
-function getParsedCurrentGitPath() {
-  return parseGitUrl(gitUrlInput.value)?.fullPath ?? "";
-}
-
-function getWorkspaceMode() {
-  return workspaceMode;
-}
-
-function updateCloneSummary() {
-  if (getWorkspaceMode() !== "new") {
-    return;
-  }
-
-  const alias = hostAliasInput.value.trim() || "your-alias";
-  const parsed = parseGitUrl(gitUrlInput.value);
-  const workspacePath = workspacePathInput.value.trim();
-
-  if (!workspacePath) {
-    cloneSummary.textContent = "请先选择父目录。";
-    cloneSummary.dataset.type = "info";
-    return;
-  }
-
-  if (!parsed) {
-    cloneSummary.textContent = "请先输入可识别的 Git 地址，工具会自动转换为别名 remote 后再 clone。";
-    cloneSummary.dataset.type = "info";
-    return;
-  }
-
-  cloneSummary.textContent = `将克隆到：${workspacePath}\n克隆地址：git@${alias}:${parsed.fullPath}`;
-  cloneSummary.dataset.type = "success";
-}
-
-function setWorkspaceMode(mode: WorkspaceMode) {
-  workspaceMode = mode;
-  existingModeBtn.classList.toggle("active", mode === "existing");
-  newModeBtn.classList.toggle("active", mode === "new");
-  existingRepoSection.classList.toggle("hidden-section", mode !== "existing");
-  newRepoSection.classList.toggle("hidden-section", mode !== "new");
-
-  if (mode === "existing") {
-    workspacePathLabel.textContent = "工作区文件夹";
-    workspacePathInput.placeholder = "选择父目录也可以，工具会自动扫描其中带 .git 的子项目";
-    saveBtn.textContent = "保存账号并绑定工作区";
-  } else {
-    workspacePathLabel.textContent = "父目录";
-    workspacePathInput.placeholder = "选择一个用于存放新仓库的父目录";
-    saveBtn.textContent = "保存账号并克隆新仓库";
-  }
-
-  updateCloneSummary();
+  remotePreview.textContent = `git@${alias}:命名空间/仓库.git`;
 }
 
 function updateRepoScanSummary() {
-  if (getWorkspaceMode() !== "existing") {
-    return;
-  }
-
   if (!workspacePathInput.value.trim()) {
     repoScanSummary.textContent = "请先选择一个工作区文件夹。";
     repoScanSummary.dataset.type = "info";
@@ -883,10 +702,6 @@ function updateRepoScanSummary() {
 }
 
 function renderScannedRepositories() {
-  if (getWorkspaceMode() !== "existing") {
-    return;
-  }
-
   updateRepoScanSummary();
 
   if (!scannedRepositories.length) {
@@ -894,15 +709,9 @@ function renderScannedRepositories() {
     return;
   }
 
-  const parsedGitPath = getParsedCurrentGitPath();
   scannedReposContainer.innerHTML = scannedRepositories
     .map((repo) => {
       const checked = selectedRepositoryPaths.has(repo.path) ? "checked" : "";
-      const parsedOrigin = repo.originUrl ? parseGitUrl(repo.originUrl)?.fullPath ?? "" : "";
-      const matchTag =
-        parsedGitPath && parsedOrigin === parsedGitPath
-          ? '<span class="mini-tag match-tag">匹配当前 Git 地址</span>'
-          : "";
 
       return `
         <label class="repo-item">
@@ -911,7 +720,6 @@ function renderScannedRepositories() {
             <div class="repo-meta">
               <div class="repo-title-row">
                 <strong>${escapeHtml(repo.name)}</strong>
-                ${matchTag}
               </div>
               <p>${escapeHtml(repo.relativePath)}</p>
               <code>${escapeHtml(repo.path)}</code>
@@ -935,57 +743,74 @@ function buildFormConfig(): AccountConfig {
     hostName: hostNameInput.value.trim(),
     user: sshUserInput.value.trim(),
     email: emailInput.value.trim(),
-    keyName: keyNameInput.value.trim(),
+    keyName: keySelect.value.trim(),
     gitUserName: gitUserNameInput.value.trim() || undefined,
     workspacePath: workspacePathInput.value.trim() || undefined,
-    reuseExistingKey: reuseExistingKeyInput.checked,
+    reuseExistingKey: true,
     selectedRepoPaths: Array.from(selectedRepositoryPaths),
   };
 }
 
+function renderKeySelect(selectedKeyName = "") {
+  const keys = dashboardData.existingKeys;
+  const options = keys.map(
+    (key) => `<option value="${escapeHtml(key.keyName)}">${escapeHtml(key.keyName)}</option>`,
+  );
+  if (selectedKeyName && !keys.some((key) => key.keyName === selectedKeyName)) {
+    options.unshift(
+      `<option value="${escapeHtml(selectedKeyName)}">${escapeHtml(selectedKeyName)}（文件缺失）</option>`,
+    );
+  }
+  if (!options.length) {
+    options.push('<option value="">（暂无密钥，请先新建）</option>');
+  }
+  keySelect.innerHTML = options.join("");
+  keySelect.value = selectedKeyName || keys[0]?.keyName || "";
+}
+
 function resetForm() {
   platformSelect.value = "codeup";
-  gitUrlInput.value = "";
-  namespaceInput.value = "";
-  repoNameInput.value = "";
   hostAliasInput.value = "";
   hostNameInput.value = "";
   sshUserInput.value = "git";
-  keyNameInput.value = "";
   emailInput.value = "";
   gitUserNameInput.value = "";
   workspacePathInput.value = "";
-  reuseExistingKeyInput.checked = false;
   scannedRepositories = [];
   selectedRepositoryPaths = new Set<string>();
+  renderKeySelect();
   updatePlatformPreset();
-  renderGitUrlResult(null);
-  setWorkspaceMode("existing");
   renderScannedRepositories();
 }
 
-function fillFormFromAccount(account: ManagedAccount) {
-  setTab("config");
-  platformSelect.value = account.platform;
-  updatePlatformPreset();
-  hostAliasInput.value = account.hostAlias;
-  hostNameInput.value = account.hostName;
-  sshUserInput.value = account.user;
-  keyNameInput.value = account.keyName;
-  emailInput.value = account.email;
-  gitUserNameInput.value = "";
-  namespaceInput.value = "";
-  repoNameInput.value = "";
-  gitUrlInput.value = "";
-  workspacePathInput.value = "";
-  reuseExistingKeyInput.checked = true;
-  scannedRepositories = [];
-  selectedRepositoryPaths = new Set<string>();
-  renderGitUrlResult(null);
-  setWorkspaceMode("existing");
-  renderScannedRepositories();
-  updateRemotePreview();
-  setStatus(`已载入账号 ${account.hostAlias}，可重新绑定工作区或测试 SSH。`, "info");
+function openAccountForm(account?: ManagedAccount) {
+  if (account) {
+    accountFormTitle.textContent = `编辑账号 ${account.hostAlias}`;
+    platformSelect.value = account.platform;
+    updatePlatformPreset();
+    hostAliasInput.value = account.hostAlias;
+    hostNameInput.value = account.hostName;
+    sshUserInput.value = account.user;
+    renderKeySelect(account.keyName);
+    emailInput.value = account.email;
+    gitUserNameInput.value = "";
+    workspacePathInput.value = "";
+    scannedRepositories = [];
+    selectedRepositoryPaths = new Set<string>();
+    renderScannedRepositories();
+    updateRemotePreview();
+    setStatus(`已载入账号 ${account.hostAlias}，可重新绑定工作区或测试 SSH。`, "info");
+  } else {
+    resetForm();
+    accountFormTitle.textContent = "新建账号";
+  }
+  accountDrawer.classList.remove("hidden-section");
+  hostAliasInput.focus();
+}
+
+function closeAccountForm() {
+  accountDrawer.classList.add("hidden-section");
+  resetForm();
 }
 
 async function pickWorkspaceFolder() {
@@ -999,7 +824,6 @@ async function pickWorkspaceFolder() {
     scannedRepositories = [];
     selectedRepositoryPaths = new Set<string>();
     renderScannedRepositories();
-    updateCloneSummary();
   }
 }
 
@@ -1109,7 +933,7 @@ function renderManagedAccounts() {
 
   if (!dashboardData.managedAccounts.length) {
     managedAccountsContainer.innerHTML =
-      '<tr><td colspan="7" class="table-empty">还没有已管理账号，先去「账号配置」里创建一个。</td></tr>';
+      '<tr><td colspan="7" class="table-empty">还没有账号，点击「新建账号」创建一个。</td></tr>';
     return;
   }
 
@@ -1127,7 +951,7 @@ function renderManagedAccounts() {
           <td>${account.workspaces.length ? `<span class="tag">${account.workspaces.length} 个</span>` : '<span class="muted-text">未绑定</span>'}</td>
           <td class="cell-actions">
             <button class="table-btn" data-action="toggle-detail" data-host-alias="${escapeHtml(account.hostAlias)}" type="button">${expanded ? "收起" : "详情"}</button>
-            <button class="table-btn" data-action="load-account" data-host-alias="${escapeHtml(account.hostAlias)}" type="button">载入</button>
+            <button class="table-btn" data-action="load-account" data-host-alias="${escapeHtml(account.hostAlias)}" type="button">编辑</button>
             <button class="table-btn" data-action="refresh-workspaces" data-host-alias="${escapeHtml(account.hostAlias)}" type="button">刷新</button>
             <button class="table-btn table-btn-danger" data-action="delete-account" data-host-alias="${escapeHtml(account.hostAlias)}" type="button">删除</button>
           </td>
@@ -1141,7 +965,7 @@ function renderManagedAccounts() {
 function renderExistingKeys() {
   if (!dashboardData.existingKeys.length) {
     existingKeysContainer.innerHTML =
-      '<tr><td colspan="5" class="table-empty">当前没有扫描到私钥文件，可点击右上角「创建新密钥」。</td></tr>';
+      '<tr><td colspan="6" class="table-empty">当前没有扫描到私钥文件，可点击「创建新密钥」。</td></tr>';
     return;
   }
 
@@ -1150,6 +974,9 @@ function renderExistingKeys() {
       const hosts = key.managedHosts.length
         ? key.managedHosts.map((host) => `<span class="tag">${escapeHtml(host)}</span>`).join("")
         : '<span class="tag muted-tag">未绑定账号</span>';
+      const workspaces = key.workspacePaths.length
+        ? key.workspacePaths.map((path) => `<div class="key-workspace-path">${escapeHtml(path)}</div>`).join("")
+        : '<span class="muted-text">未绑定仓库</span>';
 
       return `
         <tr>
@@ -1157,6 +984,7 @@ function renderExistingKeys() {
           <td class="cell-path" title="${escapeHtml(key.keyPath)}">${escapeHtml(key.keyPath)}</td>
           <td class="cell-path" title="${escapeHtml(key.publicKeyPath)}">${escapeHtml(key.publicKeyPath)}</td>
           <td><div class="tag-group">${hosts}</div></td>
+          <td><div class="key-workspace-list">${workspaces}</div></td>
           <td class="cell-actions">
             <button class="table-btn" data-action="copy-key" data-key-name="${escapeHtml(key.keyName)}" type="button">复制公钥</button>
             <button class="table-btn table-btn-danger" data-action="delete-key" data-key-name="${escapeHtml(key.keyName)}" type="button">删除</button>
@@ -1168,9 +996,10 @@ function renderExistingKeys() {
 }
 
 function renderDashboard() {
-  renderManagedAccounts();
   renderExistingKeys();
+  renderManagedAccounts();
   renderImportAccountOptions();
+  renderKeySelect();
 }
 
 function setImportStatus(message: string, type: StatusType = "info") {
@@ -1190,7 +1019,7 @@ function renderImportAccountOptions() {
             )} / ${escapeHtml(account.hostName)}）</option>`,
         )
         .join("")
-    : '<option value="">-- 暂无已管理账号，请先到「账号配置」创建 --</option>';
+    : '<option value="">-- 暂无已管理账号，请先到「账号与密钥」页创建 --</option>';
   if (!hasAccounts) {
     importAccountSelect.value = "";
   }
@@ -1217,6 +1046,7 @@ async function importRepository() {
   const hostAlias = importAccountSelect.value;
   const parentDirectory = importParentDirInput.value.trim();
   const directoryName = importDirNameInput.value.trim();
+  const branch = importBranchInput.value.trim();
 
   if (!gitUrl) {
     setImportStatus("请输入 Git 地址。", "error");
@@ -1237,6 +1067,16 @@ async function importRepository() {
     return;
   }
 
+  if (branch) {
+    setImportStatus("正在验证分支...", "info");
+    try {
+      await invoke("verify_remote_branch", { gitUrl, branch });
+    } catch (error) {
+      setImportStatus(`分支验证失败：${String(error)}`, "error");
+      return;
+    }
+  }
+
   setImportStatus("正在克隆仓库...", "info");
   try {
     const result = await invoke<string>("clone_repository", {
@@ -1247,6 +1087,7 @@ async function importRepository() {
         gitUserName: account.workspaces[0]?.gitUserName || "Git SSH Manager",
         gitEmail: account.email,
         directoryName: directoryName || null,
+        branch: branch || null,
       },
     });
     await loadDashboard();
@@ -1260,6 +1101,7 @@ function resetImportForm() {
   importGitUrlInput.value = "";
   importParentDirInput.value = "";
   importDirNameInput.value = "";
+  importBranchInput.value = "";
   if (importAccountSelect.options.length > 1) {
     importAccountSelect.value = "";
   }
@@ -1333,6 +1175,7 @@ async function createNewKey() {
     createKeyNameInput.value = "";
     createKeyEmailInput.value = "";
     await loadDashboard();
+    renderKeySelect(keyName);
     closeCreateKeyModal();
     setKeysStatus(result, "success");
   } catch (error) {
@@ -1354,52 +1197,24 @@ async function saveAccount() {
     const workspacePath = workspacePathInput.value.trim();
     const selectedPaths = Array.from(selectedRepositoryPaths);
 
-    if (getWorkspaceMode() === "existing") {
-      if (workspacePath && !selectedPaths.length) {
-        setStatus("请先扫描工作区，并勾选至少一个子 Git 仓库。", "error");
-        return;
-      }
+    if (workspacePath && !selectedPaths.length) {
+      setStatus("请先扫描工作区，并勾选至少一个子 Git 仓库。", "error");
+      return;
+    }
 
-      if (workspacePath) {
-        config.workspacePath = workspacePath;
-        config.selectedRepoPaths = selectedPaths;
-      } else {
-        delete config.workspacePath;
-        delete config.selectedRepoPaths;
-      }
+    if (workspacePath) {
+      config.workspacePath = workspacePath;
+      config.selectedRepoPaths = selectedPaths;
     } else {
-      const parsed = parseGitUrl(gitUrlInput.value);
-      if (!workspacePath) {
-        setStatus("请先选择父目录。", "error");
-        return;
-      }
-      if (!parsed) {
-        setStatus("新仓库模式下必须提供可识别的 Git 地址。", "error");
-        return;
-      }
       delete config.workspacePath;
       delete config.selectedRepoPaths;
     }
 
     const result = await invoke<string>("add_account", { config });
-    let finalMessage = result;
-
-    if (getWorkspaceMode() === "new") {
-      const cloneResult = await invoke<string>("clone_repository", {
-        request: {
-          hostAlias: config.hostAlias,
-          parentDirectory: workspacePath,
-          gitUrl: gitUrlInput.value.trim(),
-          gitUserName: config.gitUserName ?? "Git SSH Manager",
-          gitEmail: config.email,
-        },
-      });
-      finalMessage = `${result}\n${cloneResult}`;
-    }
 
     await loadDashboard();
-    setStatus(finalMessage, "success");
-    resetForm();
+    closeAccountForm();
+    setAccountsStatus(result, "success");
     setTab("accounts");
   } catch (error) {
     setStatus(`保存失败：${String(error)}`, "error");
@@ -1516,7 +1331,7 @@ async function runEnvironmentCheck() {
         primaryText: "前往创建密钥",
         secondaryText: "稍后再说",
         onPrimary: () => {
-          setTab("keys");
+          setTab("accounts");
           openCreateKeyModal();
         },
       });
@@ -1626,6 +1441,8 @@ importResetBtn.addEventListener("click", resetImportForm);
 
 createKeyOpenBtn.addEventListener("click", openCreateKeyModal);
 
+formCreateKeyBtn.addEventListener("click", openCreateKeyModal);
+
 createKeyModalClose.addEventListener("click", closeCreateKeyModal);
 
 createKeyModalCancel.addEventListener("click", closeCreateKeyModal);
@@ -1647,7 +1464,9 @@ document.addEventListener("keydown", (event) => {
   if (event.key !== "Escape") {
     return;
   }
-  if (!createKeyModal.classList.contains("hidden-section")) {
+  if (!accountDrawer.classList.contains("hidden-section")) {
+    closeAccountForm();
+  } else if (!createKeyModal.classList.contains("hidden-section")) {
     closeCreateKeyModal();
   } else if (!deleteAccountModal.classList.contains("hidden-section")) {
     closeDeleteAccountModal();
@@ -1664,34 +1483,7 @@ platformSelect.addEventListener("change", () => {
   updatePlatformPreset();
 });
 
-gitUrlInput.addEventListener("input", () => {
-  renderGitUrlResult(parseGitUrl(gitUrlInput.value), gitUrlInput.value);
-  updateCloneSummary();
-});
-
-namespaceInput.addEventListener("input", updateRemotePreview);
-repoNameInput.addEventListener("input", updateRemotePreview);
 hostAliasInput.addEventListener("input", updateRemotePreview);
-hostNameInput.addEventListener("input", updateRemotePreview);
-
-parseGitUrlBtn.addEventListener("click", () => {
-  const parsed = parseGitUrl(gitUrlInput.value);
-  if (!parsed) {
-    renderGitUrlResult(null, gitUrlInput.value);
-    setStatus("Git 地址解析失败，请检查格式。", "error");
-    return;
-  }
-  applyParsedGitUrl(parsed);
-  setStatus("Git 地址已解析并回填到表单。", "success");
-});
-
-clearGitUrlBtn.addEventListener("click", () => {
-  gitUrlInput.value = "";
-  namespaceInput.value = "";
-  repoNameInput.value = "";
-  renderGitUrlResult(null);
-  updateRemotePreview();
-});
 
 pickFolderBtn.addEventListener("click", async () => {
   try {
@@ -1706,7 +1498,6 @@ clearFolderBtn.addEventListener("click", () => {
   scannedRepositories = [];
   selectedRepositoryPaths = new Set<string>();
   renderScannedRepositories();
-  updateCloneSummary();
 });
 
 scanReposBtn.addEventListener("click", async () => {
@@ -1723,12 +1514,18 @@ clearSelectedReposBtn.addEventListener("click", () => {
   renderScannedRepositories();
 });
 
-existingModeBtn.addEventListener("click", () => {
-  setWorkspaceMode("existing");
+newAccountBtn.addEventListener("click", () => {
+  openAccountForm();
 });
 
-newModeBtn.addEventListener("click", () => {
-  setWorkspaceMode("new");
+cancelAccountFormBtn.addEventListener("click", closeAccountForm);
+
+drawerCloseBtn.addEventListener("click", closeAccountForm);
+
+accountDrawer.addEventListener("mousedown", (event) => {
+  if (event.target === accountDrawer) {
+    closeAccountForm();
+  }
 });
 
 saveBtn.addEventListener("click", async () => {
@@ -1737,11 +1534,6 @@ saveBtn.addEventListener("click", async () => {
 
 testBtn.addEventListener("click", async () => {
   await testConnection();
-});
-
-resetBtn.addEventListener("click", () => {
-  resetForm();
-  setStatus("表单已重置。", "info");
 });
 
 refreshBtn.addEventListener("click", async () => {
@@ -1776,7 +1568,7 @@ managedAccountsContainer.addEventListener("click", async (event) => {
   if (action === "load-account" && hostAlias) {
     const account = dashboardData.managedAccounts.find((item) => item.hostAlias === hostAlias);
     if (account) {
-      fillFormFromAccount(account);
+      openAccountForm(account);
     }
   }
 

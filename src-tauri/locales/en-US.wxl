@@ -1,4 +1,4 @@
-<WixLocalization Culture="en-us" xmlns="http://schemas.microsoft.com/wix/2006/localization"><String Id="TauriLanguage">1033</String>
+<WixLocalization Culture="en-us" Codepage="936" xmlns="http://schemas.microsoft.com/wix/2006/localization"><String Id="TauriLanguage">1033</String>
 <String Id="TauriCodepage">936</String>
 <String Id="LaunchApp">Launch Git密钥管理器</String>
 <String Id="DowngradeErrorMessage">A newer version of Git密钥管理器 is already installed.</String>
