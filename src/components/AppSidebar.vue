@@ -40,10 +40,6 @@ async function refresh() {
 }
 </script>
 
-<script lang="ts">
-import { ref } from "vue";
-</script>
-
 <template>
   <aside class="sidebar">
     <nav class="sidebar__menu" role="tablist" aria-label="功能菜单">

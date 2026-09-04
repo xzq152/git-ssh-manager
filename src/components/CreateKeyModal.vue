@@ -59,7 +59,6 @@ async function submit() {
       <n-form-item label="注释邮箱（可选）">
         <n-input
           v-model:value="email"
-          type="email"
           placeholder="例如：work@example.com"
           @keydown.enter.prevent="submit"
         />

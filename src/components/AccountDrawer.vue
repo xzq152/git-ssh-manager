@@ -40,6 +40,7 @@ import {
 import {
   PLATFORM_HOST_MAP,
   PLATFORM_LABEL_MAP,
+  type AccountConfig,
   type Platform,
   type ScannedRepository,
   type StatusType,
@@ -227,14 +228,15 @@ async function saveAccount() {
     setStatus("请先扫描工作区，并勾选至少一个子 Git 仓库。", "error");
     return;
   }
-  if (!config.workspacePath) {
-    delete config.workspacePath;
-    delete config.selectedRepoPaths;
-  }
+
+  // 未选工作区时不下发这两个字段（而不是事后 delete，类型上更干净）
+  const payload: AccountConfig = config.workspacePath
+    ? config
+    : { ...config, workspacePath: undefined, selectedRepoPaths: undefined };
 
   saving.value = true;
   try {
-    const result = await addAccount(config);
+    const result = await addAccount(payload);
     await loadDashboard();
     closeAccountForm();
     setTab("accounts");
@@ -277,7 +279,7 @@ async function testConnection() {
         </n-text>
 
         <n-form label-placement="top" size="small" :show-feedback="false">
-          <n-grid :cols="2" :x-gap="12" :y-gap="12" responsive="screen" cols="1 s:1 m:2">
+          <n-grid :x-gap="12" :y-gap="12" responsive="screen" cols="1 s:1 m:2">
             <n-form-item-gi label="平台类型">
               <n-select v-model:value="platform" :options="platformOptions" @update:value="onPlatformChange" />
             </n-form-item-gi>

@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 import {
   NButton,
   NForm,
-  NFormItem,
   NFormItemGi,
   NGrid,
   NIcon,
@@ -132,7 +131,7 @@ function resetForm() {
     </div>
 
     <n-form label-placement="top" size="small" :show-feedback="false">
-      <n-grid :cols="2" :x-gap="12" :y-gap="12" responsive="screen" cols="1 s:1 m:2">
+      <n-grid :x-gap="12" :y-gap="12" responsive="screen" cols="1 s:1 m:2">
         <n-form-item-gi label="Git 地址">
           <n-input
             v-model:value="gitUrl"

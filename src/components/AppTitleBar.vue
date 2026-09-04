@@ -46,7 +46,12 @@ onBeforeUnmount(() => unlisten?.());
 </script>
 
 <template>
-  <header class="titlebar" data-tauri-drag-region>
+  <header
+    class="titlebar"
+    data-tauri-drag-region
+    @mousedown="onTitlebarMouseDown"
+    @dblclick="onTitlebarDoubleClick"
+  >
     <div class="titlebar__brand" data-tauri-drag-region>
       <n-icon class="titlebar__icon" :component="Key24Regular" />
       <span class="titlebar__title" data-tauri-drag-region>Git 密钥管理器</span>
