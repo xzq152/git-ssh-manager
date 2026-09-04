@@ -4,6 +4,7 @@ import {
   NButton,
   NDataTable,
   NIcon,
+  NPopover,
   NSpace,
   NTag,
   NText,
@@ -92,17 +93,48 @@ const keyColumns: DataTableColumns<ExistingKey> = [
   {
     title: "绑定仓库",
     key: "workspacePaths",
-    minWidth: 160,
-    render: (row) =>
-      row.workspacePaths.length
-        ? h(
-            "div",
-            { style: "display:grid;gap:2px" },
-            row.workspacePaths.map((path) =>
-              h("div", { class: "mono", style: "color:var(--text-2);word-break:break-all" }, path),
-            ),
-          )
-        : h(NText, { depth: 3, style: "font-size:12px" }, { default: () => "未绑定仓库" }),
+    width: 200,
+    render: (row) => {
+      if (!row.workspacePaths.length) {
+        return h(NText, { depth: 3, style: "font-size:12px" }, { default: () => "未绑定仓库" });
+      }
+
+      const paths = row.workspacePaths;
+      const cell = h(
+        "div",
+        { style: "display:flex;align-items:center;gap:6px;min-width:0" },
+        [
+          h(
+            "span",
+            { class: "path-cell", title: paths[0], style: "flex:1;max-width:none" },
+            paths[0],
+          ),
+          h(
+            NPopover,
+            {
+              trigger: "hover",
+              placement: "left",
+              style: "max-height:300px;overflow-y:auto;max-width:420px",
+            },
+            {
+              trigger: () =>
+                h(
+                  NTag,
+                  { size: "small", bordered: false, style: "cursor:default;flex:none" },
+                  { default: () => `${paths.length} 个` },
+                ),
+              default: () =>
+                h(
+                  "div",
+                  { style: "display:grid;gap:2px;word-break:break-all" },
+                  paths.map((path) => h("div", { key: path }, path)),
+                ),
+            },
+          ),
+        ],
+      );
+      return cell;
+    },
   },
   {
     title: "操作",
