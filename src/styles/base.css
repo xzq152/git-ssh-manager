@@ -208,8 +208,6 @@ body {
   min-height: var(--titlebar-height);
   padding-left: 12px;
   background: var(--surface-sidebar);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border-bottom: 1px solid var(--stroke-divider);
   user-select: none;
   -webkit-user-select: none;
@@ -298,8 +296,6 @@ body {
   width: var(--sidebar-width);
   padding: 8px 8px 12px;
   background: var(--surface-sidebar);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
   border-right: 1px solid var(--stroke-divider);
 }
 
@@ -453,8 +449,10 @@ body {
   border: 1px solid var(--stroke-card);
   border-radius: var(--radius-lg);
   background: var(--surface-card);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  /* 注意：这里刻意不用 backdrop-filter。
+     WebView2（透明窗口）里它会把元素提升为独立合成层，
+     与弹层的绘制顺序互相打架（表格固定列会浮到抽屉上面）。
+     Mica 本身已经是模糊后的桌面，卡片不需要再模糊。 */
   box-shadow: var(--shadow-2);
 }
 
@@ -602,6 +600,23 @@ body {
 .n-drawer .status-bar,
 .n-modal .status-bar {
   margin-top: 12px;
+}
+
+/* ============================================================
+   层级修复
+   WebView2（透明窗口 + backdrop-filter）存在合成顺序问题：
+   表格固定列是 sticky + z-index:3，会绘制到 teleport 出来的弹层之上。
+   这里把弹层容器强制压到最高层级，保证永远盖住页面内容。
+   ============================================================ */
+
+body > .n-drawer-container,
+body > .n-modal-container {
+  z-index: 3000 !important;
+}
+
+/* 双保险：给弹层容器建立独立合成层，避免与页面元素的 backdrop-filter 抢层 */
+body > .n-drawer-container {
+  transform: translateZ(0);
 }
 
 .status-bar__close {
