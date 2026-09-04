@@ -30,6 +30,11 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
   const success = dark ? "#6bb700" : "#0e700e";
   const warning = dark ? "#f0c000" : "#9a6700";
 
+  // naive-ui 的 baseColor 是「主色底上的文字/图标颜色」：
+  // 亮色主题主色是深蓝 → 文字用白色；暗色主题主色是亮蓝 → 文字用黑色。
+  // 之前误设成了正文色，导致 primary 按钮 hover 变蓝后文字图标还是黑的。
+  const onAccent = dark ? "#000000" : "#ffffff";
+
   const cardColor = dark ? "rgba(41,41,41,0.62)" : "rgba(255,255,255,0.72)";
   // 弹层（抽屉/对话框/下拉）必须接近不透明，否则底下页面内容会透出来形成"鬼影"
   const modalColor = dark ? "#2c2c2c" : "#ffffff";
@@ -52,7 +57,7 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
       fontSizeLarge: "15px",
       lineHeight: "1.5",
 
-      baseColor: text1,
+      baseColor: onAccent,
       primaryColor: accent,
       primaryColorHover: accentHover,
       primaryColorPressed: accentPressed,
@@ -136,6 +141,19 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
       iconSizeSmall: "14px",
       iconSizeMedium: "16px",
       iconSizeLarge: "18px",
+      // primary/error 等实心按钮：底色变蓝变红时，文字和图标必须跟着变白/变黑
+      textColorPrimary: onAccent,
+      textColorHoverPrimary: onAccent,
+      textColorPressedPrimary: onAccent,
+      textColorFocusPrimary: onAccent,
+      textColorError: onAccent,
+      textColorHoverError: onAccent,
+      textColorPressedError: onAccent,
+      textColorFocusError: onAccent,
+      textColorWarning: onAccent,
+      textColorHoverWarning: onAccent,
+      textColorPressedWarning: onAccent,
+      textColorFocusWarning: onAccent,
     },
     Input: { borderRadius: "4px" },
     Select: { peers: { InternalSelection: { borderRadius: "4px" } } },
