@@ -422,6 +422,18 @@ body {
   margin-top: 8px !important;
 }
 
+/* 标题行右侧的操作按钮不允许被压缩，否则文字会被裁掉一截 */
+.page-head > *,
+.section-head > * {
+  flex: none;
+}
+
+.page-head > div:first-child,
+.section-head > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
 .section-head__title {
   margin: 0;
   color: var(--text-1);

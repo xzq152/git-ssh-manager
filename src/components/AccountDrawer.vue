@@ -6,6 +6,7 @@ import {
   NDrawer,
   NDrawerContent,
   NForm,
+  NFormItem,
   NFormItemGi,
   NGrid,
   NIcon,
@@ -330,7 +331,7 @@ async function testConnection() {
         </p>
 
         <n-form label-placement="top" size="small" :show-feedback="false">
-          <n-form-item-gi label="工作区文件夹">
+          <n-form-item label="工作区文件夹">
             <div class="form-row" style="width: 100%">
               <n-input
                 v-model:value="workspacePath"
@@ -344,7 +345,7 @@ async function testConnection() {
               </n-button>
               <n-button quaternary @click="clearWorkspace">清空</n-button>
             </div>
-          </n-form-item-gi>
+          </n-form-item>
         </n-form>
 
         <div class="card card--pad" style="margin-bottom: 12px">

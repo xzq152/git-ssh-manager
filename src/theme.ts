@@ -31,8 +31,9 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
   const warning = dark ? "#f0c000" : "#9a6700";
 
   const cardColor = dark ? "rgba(41,41,41,0.62)" : "rgba(255,255,255,0.72)";
-  const modalColor = dark ? "rgba(44,44,44,0.96)" : "rgba(255,255,255,0.96)";
-  const popoverColor = dark ? "rgba(44,44,44,0.96)" : "rgba(255,255,255,0.96)";
+  // 弹层（抽屉/对话框/下拉）必须接近不透明，否则底下页面内容会透出来形成"鬼影"
+  const modalColor = dark ? "#2c2c2c" : "#ffffff";
+  const popoverColor = dark ? "#2c2c2c" : "#ffffff";
   const tableHeaderColor = dark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
   const inputColor = dark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.72)";
   const inputColorDisabled = dark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
@@ -126,8 +127,15 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
       borderRadiusLarge: "6px",
       fontWeight: "600",
       fontWeightStrong: "600",
-      paddingMedium: "0 14px",
-      paddingSmall: "0 10px",
+      paddingTiny: "0 8px",
+      paddingSmall: "0 12px",
+      paddingMedium: "0 16px",
+      paddingLarge: "0 18px",
+      // 图标按字号走，避免 24px 的 Fluent 图标把小按钮撑爆、文字被裁
+      iconSizeTiny: "12px",
+      iconSizeSmall: "14px",
+      iconSizeMedium: "16px",
+      iconSizeLarge: "18px",
     },
     Input: { borderRadius: "4px" },
     Select: { peers: { InternalSelection: { borderRadius: "4px" } } },
@@ -144,10 +152,25 @@ export const themeOverrides = computed<GlobalThemeOverrides>(() => {
       tdColorHover: hoverColor,
     },
     Divider: { color: dividerColor },
-    Drawer: { bodyPadding: "0", headerPadding: "14px 18px", footerPadding: "12px 18px" },
+    Drawer: {
+      color: modalColor,
+      headerPadding: "16px 20px 12px",
+      bodyPadding: "16px 20px",
+      footerPadding: "12px 20px 16px",
+    },
     Modal: { borderRadius: "6px" },
+    Tooltip: {
+      // Fluent 风格：浅色气泡 + 细描边，而不是大片黑块
+      color: dark ? "#2c2c2c" : "#ffffff",
+      textColor: text1,
+      fontSize: "12px",
+      padding: "6px 10px",
+      borderRadius: "4px",
+      boxShadow: dark
+        ? "0 0 0 1px rgba(255,255,255,0.14), 0 4px 8px rgba(0,0,0,0.32)"
+        : "0 0 0 1px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.14)",
+    },
     Message: { borderRadius: "4px" },
-    Tooltip: { borderRadius: "4px" },
   } as GlobalThemeOverrides;
 });
 
