@@ -1,0 +1,844 @@
+/* ============================================================
+   Git SSH Manager — 设计令牌 / Design Tokens
+   风格：Fluent 2 · 现代简约 · 小圆角
+   所有颜色走 CSS 变量，与 naive-ui 的 themeOverrides 保持一致
+   ============================================================ */
+
+:root {
+  /* ---------- 品牌色（Fluent 2 brand ramp） ---------- */
+  --accent: #0f6cbd;
+  --accent-hover: #115ea3;
+  --accent-pressed: #0c3b5e;
+  --accent-subtle: rgba(15, 108, 189, 0.1);
+  --accent-subtle-hover: rgba(15, 108, 189, 0.16);
+
+  --success: #0e700e;
+  --success-subtle: rgba(14, 112, 14, 0.1);
+  --warning: #9a6700;
+  --warning-subtle: rgba(249, 168, 37, 0.14);
+  --danger: #c50f1f;
+  --danger-hover: #a80010;
+  --danger-subtle: rgba(197, 15, 31, 0.08);
+
+  /* ---------- 文本 ---------- */
+  --text-1: #1b1b1f;
+  --text-2: #5b5b5b;
+  --text-3: #8a8a8a;
+  --text-disabled: #bdbdbd;
+  --text-on-accent: #ffffff;
+
+  /* ---------- 表面（半透明，透出 Mica） ---------- */
+  /* 材质不可用时（Win10 以下 /  unsupported 平台）用不透明底色兜底 */
+  --surface-app: linear-gradient(160deg, #f4f6f9 0%, #eef1f5 55%, #e9edf2 100%);
+  --surface-sidebar: rgba(249, 250, 251, 0.55);
+  --surface-card: rgba(255, 255, 255, 0.72);
+  --surface-elevated: rgba(255, 255, 255, 0.94);
+  --surface-sunken: rgba(0, 0, 0, 0.03);
+  --surface-hover: rgba(0, 0, 0, 0.04);
+  --surface-active: rgba(0, 0, 0, 0.06);
+  --surface-code: rgba(0, 0, 0, 0.045);
+
+  /* ---------- 描边 ---------- */
+  --stroke-card: rgba(0, 0, 0, 0.07);
+  --stroke-divider: rgba(0, 0, 0, 0.09);
+  --stroke-control: rgba(0, 0, 0, 0.12);
+
+  /* ---------- 阴影（Fluent 2 shadow 4 / 8 / 16） ---------- */
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.14), 0 0 2px rgba(0, 0, 0, 0.12);
+  --shadow-4: 0 1px 2px rgba(0, 0, 0, 0.14), 0 2px 4px rgba(0, 0, 0, 0.14);
+  --shadow-8: 0 2px 4px rgba(0, 0, 0, 0.14), 0 4px 8px rgba(0, 0, 0, 0.14);
+  --shadow-16: 0 4px 8px rgba(0, 0, 0, 0.14), 0 8px 16px rgba(0, 0, 0, 0.14);
+  --shadow-28: 0 8px 16px rgba(0, 0, 0, 0.14), 0 16px 32px rgba(0, 0, 0, 0.2);
+
+  /* ---------- 圆角：现代简约，拒绝大圆角 ---------- */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* ---------- 尺寸 ---------- */
+  --titlebar-height: 36px;
+  --sidebar-width: 220px;
+
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --accent: #479ef5;
+  --accent-hover: #62abf5;
+  --accent-pressed: #2886de;
+  --accent-subtle: rgba(71, 158, 245, 0.14);
+  --accent-subtle-hover: rgba(71, 158, 245, 0.22);
+
+  --success: #6bb700;
+  --success-subtle: rgba(107, 183, 0, 0.16);
+  --warning: #f0c000;
+  --warning-subtle: rgba(240, 192, 0, 0.16);
+  --danger: #f1707b;
+  --danger-hover: #f8919a;
+  --danger-subtle: rgba(241, 112, 123, 0.14);
+
+  --text-1: #f5f5f5;
+  --text-2: #adadad;
+  --text-3: #8b8b8b;
+  --text-disabled: #5e5e5e;
+  --text-on-accent: #0b0b0b;
+
+  --surface-app: linear-gradient(160deg, #202124 0%, #1b1c1e 55%, #17181a 100%);
+  --surface-sidebar: rgba(32, 32, 32, 0.5);
+  --surface-card: rgba(41, 41, 41, 0.62);
+  --surface-elevated: rgba(44, 44, 44, 0.94);
+  --surface-sunken: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+  --surface-active: rgba(255, 255, 255, 0.09);
+  --surface-code: rgba(255, 255, 255, 0.06);
+
+  --stroke-card: rgba(255, 255, 255, 0.09);
+  --stroke-divider: rgba(255, 255, 255, 0.12);
+  --stroke-control: rgba(255, 255, 255, 0.18);
+
+  --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.28), 0 0 2px rgba(0, 0, 0, 0.24);
+  --shadow-4: 0 1px 2px rgba(0, 0, 0, 0.28), 0 2px 4px rgba(0, 0, 0, 0.28);
+  --shadow-8: 0 2px 4px rgba(0, 0, 0, 0.32), 0 4px 8px rgba(0, 0, 0, 0.32);
+  --shadow-16: 0 4px 8px rgba(0, 0, 0, 0.32), 0 8px 16px rgba(0, 0, 0, 0.36);
+  --shadow-28: 0 8px 16px rgba(0, 0, 0, 0.36), 0 16px 32px rgba(0, 0, 0, 0.44);
+
+  color-scheme: dark;
+}
+
+/* 窗口成功拿到系统材质（Mica / Blur / Vibrancy）时，
+   让页面背景透明，把材质透出来；否则保持上面的不透明兜底底色。 */
+:root[data-window-effect] {
+  --surface-app: transparent;
+}
+
+/* ============================================================
+   基础重置
+   ============================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  /* 关键：背景透明，才能让 window-vibrancy 的 Mica 材质透出来 */
+  background: var(--surface-app);
+  color: var(--text-1);
+  font-family: "Segoe UI Variable Text", "Segoe UI", Inter, system-ui, -apple-system,
+    "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* ---------- 滚动条：Fluent 风格的细滚动条 ---------- */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background-clip: content-box;
+  background-color: var(--stroke-control);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-3);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ============================================================
+   应用骨架
+   ============================================================ */
+
+.app-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px 40px;
+}
+
+/* ============================================================
+   自定义标题栏（无边框窗口）
+   ============================================================ */
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  height: var(--titlebar-height);
+  min-height: var(--titlebar-height);
+  padding-left: 12px;
+  background: var(--surface-sidebar);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-bottom: 1px solid var(--stroke-divider);
+  user-select: none;
+  -webkit-user-select: none;
+  white-space: nowrap;
+}
+
+.titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.titlebar__icon {
+  display: flex;
+  color: var(--accent);
+  font-size: 15px;
+}
+
+.titlebar__title {
+  overflow: hidden;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.titlebar__controls {
+  display: flex;
+  align-self: stretch;
+}
+
+.win-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  color: var(--text-2);
+  background: transparent;
+  font-size: 12px;
+  cursor: default;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+/* 关键：不设尺寸的话 SVG 会按默认 300x150 撑爆标题栏 */
+.win-btn svg {
+  display: block;
+  width: 10px;
+  height: 10px;
+  overflow: visible;
+}
+
+.win-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text-1);
+}
+
+.win-btn:active {
+  background: var(--surface-active);
+}
+
+.win-btn--close:hover {
+  background: #c50f1f;
+  color: #ffffff;
+}
+
+.win-btn--close:active {
+  background: #a80010;
+}
+
+/* ============================================================
+   侧边导航
+   ============================================================ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: var(--sidebar-width);
+  padding: 8px 8px 12px;
+  background: var(--surface-sidebar);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+  border-right: 1px solid var(--stroke-divider);
+}
+
+.sidebar__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-1);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.nav-item__icon {
+  display: flex;
+  flex: none;
+  font-size: 16px;
+  color: var(--text-2);
+  transition: color 0.12s ease;
+}
+
+.nav-item:hover {
+  background: var(--surface-hover);
+}
+
+.nav-item:active {
+  background: var(--surface-active);
+}
+
+.nav-item.is-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.nav-item.is-active .nav-item__icon {
+  color: var(--accent);
+}
+
+/* Fluent 的选中指示条：左侧 3px 小竖条，不用大圆角胶囊 */
+.nav-item.is-active::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 3px;
+  height: 16px;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--accent);
+  transform: translateY(-50%);
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid var(--stroke-divider);
+}
+
+/* ============================================================
+   页面区块
+   ============================================================ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  /* 页面内所有区块统一用这一个间距，禁止各自为政的 margin */
+  gap: 14px;
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+/* flex gap 已负责纵向节奏，下面这些历史 margin 全部清零 */
+.page > * {
+  margin: 0;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.page-head__title {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.page-head__desc {
+  margin: 2px 0 0;
+  max-width: 720px;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  /* 额外 +8px：让「区块标题」和它上面的内容拉远一点，和自己的表格贴得更近，形成分组感 */
+  margin-top: 8px !important;
+}
+
+.section-head__title {
+  margin: 0;
+  color: var(--text-1);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.section-head__desc {
+  margin: 2px 0 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+/* ---------- 卡片 ---------- */
+
+.card {
+  border: 1px solid var(--stroke-card);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  box-shadow: var(--shadow-2);
+}
+
+.card--pad {
+  padding: 16px;
+}
+
+/* 首页四步卡 */
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.step-card {
+  padding: 14px 16px;
+  transition: box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.step-card:hover {
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-4);
+}
+
+.step-card__index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 8px;
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.step-card__title {
+  margin: 0 0 4px;
+  color: var(--text-1);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step-card__body {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.step-card__body code,
+.note-card__body code,
+.preview-value {
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-code);
+  color: var(--text-1);
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.note-card {
+  margin: 0;
+}
+
+.note-card__title {
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-1);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.note-card__body {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+/* ---------- 预览 / 状态条 ---------- */
+
+.preview-card {
+  padding: 12px 14px;
+}
+
+.preview-label {
+  margin: 0 0 6px;
+  color: var(--text-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.preview-value {
+  display: block;
+  overflow-x: auto;
+  padding: 8px 10px;
+  white-space: pre;
+  word-break: break-all;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--stroke-card);
+  border-radius: var(--radius-md);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.status-bar__icon {
+  display: flex;
+  flex: none;
+  font-size: 15px;
+}
+
+.status-bar__text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.status-bar.is-success {
+  background: var(--success-subtle);
+  color: var(--success);
+}
+
+.status-bar.is-error {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+/* 抽屉/弹窗内部不参与 .page 的 gap 布局，需要自己补回间距 */
+.n-drawer .status-bar,
+.n-modal .status-bar {
+  margin-top: 12px;
+}
+
+.status-bar__close {
+  flex: none;
+}
+
+/* ---------- 同域名多账号提示 ---------- */
+
+.host-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-card);
+  border-left: 3px solid var(--warning);
+  border-radius: var(--radius-md);
+  background: var(--warning-subtle);
+}
+
+.host-notice__icon {
+  display: flex;
+  flex: none;
+  margin-top: 1px;
+  color: var(--warning);
+  font-size: 16px;
+}
+
+.host-notice__title {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.host-notice__body {
+  margin: 2px 0 6px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+/* ---------- 路径 / 等宽文本 ---------- */
+
+.mono {
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 12px;
+}
+
+.path-cell {
+  display: block;
+  max-width: 168px;
+  overflow: hidden;
+  color: var(--text-2);
+  font-family: "Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace;
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- 标签 ---------- */
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill--neutral {
+  background: var(--surface-sunken);
+  color: var(--text-2);
+}
+
+.pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ---------- 仓库扫描 ---------- */
+
+.repo-list {
+  display: grid;
+  gap: 6px;
+}
+
+.repo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--stroke-card);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.repo-item:hover {
+  background: var(--surface-hover);
+}
+
+.repo-item.is-checked {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.repo-item__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.repo-item__name {
+  color: var(--text-1);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.repo-item__meta {
+  color: var(--text-2);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.repo-item__origin {
+  color: var(--text-3);
+  font-size: 11.5px;
+  word-break: break-all;
+}
+
+.empty-hint {
+  padding: 20px 12px;
+  color: var(--text-3);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+/* ---------- 表单栅格 ---------- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-row__grow {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- 抽屉底部 ---------- */
+
+.drawer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- 表格微调 ---------- */
+
+:deep(.n-data-table-th) {
+  font-weight: 600;
+}
+
+.detail-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 20px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  word-break: break-all;
+}
+
+.detail-grid strong {
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.detail-label {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-1);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.workspace-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-card);
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.workspace-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------- 过渡 ---------- */
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.16s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* ---------- 窄屏 ---------- */
+
+@media (max-width: 900px) {
+  .step-grid,
+  .form-grid,
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .app-content {
+    padding: 14px;
+  }
+}

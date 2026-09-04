@@ -3,6 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use tauri::Manager;
 use tokio::process::Command;
 
 const MANAGED_MARKER: &str = "# Managed by Rust Git SSH Manager";
@@ -1636,11 +1637,86 @@ fn file_name_string(path: &Path) -> String {
         .to_string()
 }
 
+/// 记录当前窗口实际生效的背景材质，供前端决定是否让页面背景透明。
+/// 取值："mica" | "blur" | "vibrancy" | "none"
+static WINDOW_EFFECT: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+
+fn remember_effect(name: &str) {
+    if let Ok(mut guard) = WINDOW_EFFECT.lock() {
+        *guard = name.to_string();
+    }
+}
+
+/// 为窗口应用系统背景材质。
+///
+/// Windows 11（22621+）使用 Mica，旧版本自动降级为亚克力模糊；
+/// macOS 使用 Vibrancy；其他平台返回 "none"。
+/// 任一步失败都不阻塞启动，只是没有毛玻璃效果。
+#[allow(unused_variables, unused_mut)]
+fn apply_window_effects(window: &tauri::WebviewWindow, dark: bool) -> &'static str {
+    let mut effect = "none";
+
+    #[cfg(target_os = "windows")]
+    {
+        use window_vibrancy::{apply_blur, apply_mica};
+
+        if apply_mica(window, Some(dark)).is_ok() {
+            effect = "mica";
+        } else if apply_blur(window, Some((248, 250, 252, 210))).is_ok() {
+            // Windows 10 不支持 Mica，退化为亚克力模糊
+            effect = "blur";
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
+
+        if apply_vibrancy(
+            window,
+            NSVisualEffectMaterial::HudWindow,
+            Some(NSVisualEffectState::FollowsWindowActiveState),
+            None,
+        )
+        .is_ok()
+        {
+            effect = "vibrancy";
+        }
+    }
+
+    remember_effect(effect);
+    effect
+}
+
+/// 前端启动时查询：窗口是否真的拿到了系统材质，决定页面背景要不要透明。
+#[tauri::command]
+fn window_effect() -> String {
+    WINDOW_EFFECT
+        .lock()
+        .map(|guard| guard.clone())
+        .unwrap_or_else(|_| "none".to_string())
+}
+
+/// 前端跟随系统主题变化时调用，用于同步 Mica 的深浅色。
+#[tauri::command]
+fn set_window_theme(app: tauri::AppHandle, dark: bool) {
+    if let Some(window) = app.get_webview_window("main") {
+        apply_window_effects(&window, dark);
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let dark = matches!(window.theme(), Ok(tauri::Theme::Dark));
+                apply_window_effects(&window, dark);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             list_dashboard,
             add_account,
@@ -1654,7 +1730,9 @@ pub fn run() {
             create_key,
             read_public_key,
             refresh_account_workspaces,
-            check_environment
+            check_environment,
+            set_window_theme,
+            window_effect
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

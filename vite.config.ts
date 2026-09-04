@@ -1,15 +1,19 @@
 import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import UnoCSS from "unocss/vite";
 
 // @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vite.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig({
+  plugins: [vue(), UnoCSS()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
-  //
+
   // 1. prevent Vite from obscuring rust errors
   clearScreen: false,
+
   // 2. tauri expects a fixed port, fail if that port is not available
   server: {
     port: 1420,
@@ -27,4 +31,12 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
-}));
+
+  envPrefix: ["VITE_", "TAURI_ENV_*"],
+  build: {
+    // Tauri 在 Windows 使用 WebView2（Chromium），macOS 使用 WebKit
+    target: process.env.TAURI_ENV_PLATFORM === "windows" ? "chrome105" : "safari13",
+    minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+  },
+});

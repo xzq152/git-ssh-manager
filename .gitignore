@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 # ZCode session data
 .zcode/
+
+# WorkBuddy session data
+.workbuddy/
