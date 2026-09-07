@@ -1522,8 +1522,13 @@ fn append_config_entry(config: &AccountConfig, key_path: &Path) -> Result<(), St
             .len()
             > 0;
 
+    // WarnWeakCrypto no-pq-kex：关闭 OpenSSH 10.1+ 对未启用抗量子密钥交换
+    // （post-quantum kex）的服务器打印的 "** WARNING: connection is not using a
+    // post-quantum key exchange algorithm." 警告。该警告无害，但会被 IDE 的 Git
+    // 集成当作错误弹窗展示。注意：该选项仅 OpenSSH 10.1+ 可识别，更老版本的
+    // ssh 会报 Bad configuration option，因此要求机器上的 OpenSSH 较新。
     let config_entry = format!(
-        "{}{}\nHost {}\n  HostName {}\n  User {}\n  IdentityFile {}\n  IdentitiesOnly yes\n",
+        "{}{}\nHost {}\n  HostName {}\n  User {}\n  IdentityFile {}\n  IdentitiesOnly yes\n  WarnWeakCrypto no-pq-kex\n",
         if needs_leading_newline {
             format!("\n{}\n", MANAGED_MARKER)
         } else {
