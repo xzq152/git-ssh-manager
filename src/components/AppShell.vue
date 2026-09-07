@@ -2,7 +2,6 @@
 import { computed, onBeforeUnmount, onMounted } from "vue";
 import { useMessage } from "naive-ui";
 import AppTitleBar from "./AppTitleBar.vue";
-import AppSidebar from "./AppSidebar.vue";
 import HomeView from "../views/HomeView.vue";
 import ImportView from "../views/ImportView.vue";
 import AccountsView from "../views/AccountsView.vue";
@@ -80,8 +79,6 @@ onBeforeUnmount(() => {
   <app-title-bar />
 
   <div class="app-shell">
-    <app-sidebar />
-
     <main class="app-content">
       <transition name="fade" mode="out-in">
         <component :is="currentView" :key="activeTab" />

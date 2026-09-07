@@ -57,8 +57,7 @@
   --radius-lg: 6px;
 
   /* ---------- 尺寸 ---------- */
-  --titlebar-height: 36px;
-  --sidebar-width: 220px;
+  --titlebar-height: 44px;
 
   color-scheme: light;
 }
@@ -202,11 +201,12 @@ body {
 .titlebar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* 左侧品牌 + 中部菜单 + 右侧窗口控制，三段式 */
   flex: none;
   height: var(--titlebar-height);
   min-height: var(--titlebar-height);
   padding-left: 12px;
+  padding-right: 0;
   background: var(--surface-sidebar);
   border-bottom: 1px solid var(--stroke-divider);
   user-select: none;
@@ -216,9 +216,14 @@ body {
 
 .titlebar__brand {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  padding-right: 16px;
+  margin-right: 4px;
+  border-right: 1px solid var(--stroke-divider);
+  height: 100%;
 }
 
 .titlebar__icon {
@@ -237,9 +242,138 @@ body {
   text-overflow: ellipsis;
 }
 
+/* 顶部菜单（替代原侧边栏菜单） */
+.titlebar__menu {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  padding: 6px 0;
+  overflow: hidden;
+}
+
+.titlebar-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  max-height: 32px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-1);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+  flex: none;
+}
+
+.titlebar-tab__icon {
+  display: flex;
+  flex: none;
+  font-size: 15px;
+  color: var(--text-2);
+  transition: color 0.12s ease;
+}
+
+.titlebar-tab__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titlebar-tab:hover {
+  background: var(--surface-hover);
+}
+
+.titlebar-tab:active {
+  background: var(--surface-active);
+}
+
+.titlebar-tab.is-active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.titlebar-tab.is-active .titlebar-tab__icon {
+  color: var(--accent);
+}
+
 .titlebar__controls {
   display: flex;
   align-self: stretch;
+  flex: none;
+}
+
+/* 顶部右侧操作区：刷新按钮等。和左侧菜单一样不参与窗口拖动 */
+.titlebar__actions {
+  display: flex;
+  align-self: stretch;
+  flex: none;
+  align-items: center;
+  padding-left: 4px;
+  border-left: 1px solid var(--stroke-divider);
+}
+
+.titlebar-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  color: var(--text-2);
+  background: transparent;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.titlebar-refresh__icon {
+  display: block;
+  transition: color 0.12s ease;
+}
+
+/* n-icon 渲染成 <i class="n-icon titlebar-refresh__icon">，
+   父容器 <i> 是 inline 元素，width 不生效。
+   Vue 把 :size 转给内部 <svg> 后，loading 旋转的中心轴要对齐 svg。 */
+.titlebar-refresh__icon svg {
+  display: block;
+  transition: color 0.12s ease;
+}
+
+.titlebar-refresh:hover {
+  background: var(--surface-hover);
+  color: var(--text-1);
+}
+
+.titlebar-refresh:active {
+  background: var(--surface-active);
+}
+
+.titlebar-refresh:disabled {
+  cursor: default;
+}
+
+.titlebar-refresh.is-loading .titlebar-refresh__icon {
+  animation: titlebar-refresh-spin 0.9s linear infinite;
+  color: var(--accent);
+}
+
+@keyframes titlebar-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .win-btn {
@@ -283,90 +417,6 @@ body {
 
 .win-btn--close:active {
   background: #a80010;
-}
-
-/* ============================================================
-   侧边导航
-   ============================================================ */
-
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  width: var(--sidebar-width);
-  padding: 8px 8px 12px;
-  background: var(--surface-sidebar);
-  border-right: 1px solid var(--stroke-divider);
-}
-
-.sidebar__menu {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.nav-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 34px;
-  padding: 0 10px;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-1);
-  background: transparent;
-  font-size: 13px;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease;
-}
-
-.nav-item__icon {
-  display: flex;
-  flex: none;
-  font-size: 16px;
-  color: var(--text-2);
-  transition: color 0.12s ease;
-}
-
-.nav-item:hover {
-  background: var(--surface-hover);
-}
-
-.nav-item:active {
-  background: var(--surface-active);
-}
-
-.nav-item.is-active {
-  background: var(--accent-subtle);
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.nav-item.is-active .nav-item__icon {
-  color: var(--accent);
-}
-
-/* Fluent 的选中指示条：左侧 3px 小竖条，不用大圆角胶囊 */
-.nav-item.is-active::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 3px;
-  height: 16px;
-  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
-  background: var(--accent);
-  transform: translateY(-50%);
-}
-
-.sidebar__footer {
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid var(--stroke-divider);
 }
 
 /* ============================================================
